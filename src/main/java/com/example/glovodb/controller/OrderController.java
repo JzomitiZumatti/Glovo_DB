@@ -3,18 +3,18 @@ package com.example.glovodb.controller;
 import com.example.glovodb.entity.Order;
 import com.example.glovodb.entity.Product;
 import com.example.glovodb.service.OrderService;
-import org.springframework.beans.factory.annotation.Autowired;
+import lombok.AllArgsConstructor;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
 @RestController
-@RequestMapping("/api/order")
+@RequestMapping("/api")
+@AllArgsConstructor
 public class OrderController {
 
-    @Autowired
     private OrderService orderService;
 
-    @GetMapping("/getOrders")
+    @GetMapping
     public ResponseEntity<Object> getAllOrders() {
         return orderService.getAllOrders();
     }
@@ -24,7 +24,7 @@ public class OrderController {
         return orderService.getOrderById(id);
     }
 
-    @PostMapping("/create")
+    @PostMapping
     public ResponseEntity<Object> createOrder(@RequestBody Order newOrder) {
         return orderService.createOrder(newOrder);
     }

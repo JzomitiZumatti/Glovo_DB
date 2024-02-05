@@ -35,13 +35,10 @@ public class OrderService {
     }
 
     public ResponseEntity<Object> createOrder(Order newOrder) {
-        Order savedOrder = orderRepository.save(newOrder);
+        Optional<Order> savedOrder = Optional.of(orderRepository.save(newOrder));
 
-        if (savedOrder != null) {
-            return new ResponseEntity<>(savedOrder, HttpStatus.CREATED);
-        } else {
-            return new ResponseEntity<>("Failed to create order", HttpStatus.INTERNAL_SERVER_ERROR);
-        }
+        return savedOrder.<ResponseEntity<Object>>map(order -> ResponseEntity.status(HttpStatus.CREATED).body(order))
+                .orElseGet(() -> ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body("Failed to create order"));
     }
 
     public ResponseEntity<Object> updateOrder(int orderId, Order updatedOrder) {
@@ -53,6 +50,7 @@ public class OrderService {
             existingOrder.setAddress(updatedOrder.getAddress());
             existingOrder.setTotalPrice(updatedOrder.getTotalPrice());
             existingOrder.setProducts(updatedOrder.getProducts());
+            updateTotalSum(existingOrder);
             orderRepository.save(existingOrder);
             return new ResponseEntity<>("Order updated successfully", HttpStatus.OK);
         } else {
@@ -65,6 +63,7 @@ public class OrderService {
         if (orderOptional.isPresent()) {
             Order order = orderOptional.get();
             order.getProducts().add(newProduct);
+            updateTotalSum(order);
             orderRepository.save(order);
             return new ResponseEntity<>("Product added to order successfully", HttpStatus.OK);
         } else {
@@ -80,6 +79,7 @@ public class OrderService {
             Optional<Product> productOptional = products.stream().filter(p -> p.getId() == productId).findFirst();
             if (productOptional.isPresent()) {
                 products.remove(productOptional.get());
+                updateTotalSum(order);
                 orderRepository.save(order);
                 return new ResponseEntity<>("Product deleted from order successfully", HttpStatus.OK);
             } else {
@@ -98,5 +98,10 @@ public class OrderService {
         } else {
             return new ResponseEntity<>("Order not found", HttpStatus.NOT_FOUND);
         }
+    }
+
+    private void updateTotalSum(Order order) {
+        double totalSum = order.getProducts().stream().mapToDouble(Product::getPrice).sum();
+        order.setTotalPrice(totalSum);
     }
 }

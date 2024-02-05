@@ -15,13 +15,13 @@ public class GlovoDbApplication {
         logger.info("""
                 Welcome to order manager!
                 Available methods:
-                    GET /api/order/getOrders - retrieve all orders
-                    GET /api/order/{id} - retrieve an order by id
-                    POST /api/order/create - create a new order
-                    PUT /api/order/{orderId} - update an existing order
-                    POST /api/order/{orderId}/products - add a product to an order
-                    DELETE /api/order/{orderId}/products/{productId} - delete a product from an order
-                    DELETE /api/order/{id} - delete an order by id
+                    GET /api - retrieve all orders
+                    GET /api/{id} - retrieve an order by id
+                    POST /api - create a new order
+                    PUT /api/{orderId} - update an existing order
+                    POST /api/{orderId}/products - add a product to an order
+                    DELETE /api/{orderId}/products/{productId} - delete a product from an order
+                    DELETE /api/{id} - delete an order by id
                 """);
     }
 }
