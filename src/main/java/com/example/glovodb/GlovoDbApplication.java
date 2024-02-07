@@ -19,7 +19,7 @@ public class GlovoDbApplication {
                     GET /api/{id} - retrieve an order by id
                     POST /api - create a new order
                     PUT /api/{orderId} - update an existing order
-                    POST /api/{orderId}/products - add a product to an order
+                    PATCH /api/{orderId}/products - add a product to an order
                     DELETE /api/{orderId}/products/{productId} - delete a product from an order
                     DELETE /api/{id} - delete an order by id
                 """);

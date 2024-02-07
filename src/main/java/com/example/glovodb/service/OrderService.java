@@ -16,92 +16,79 @@ public class OrderService {
 
     private OrderRepository orderRepository;
 
-    public ResponseEntity<Object> getOrderById(int id) {
+    public ResponseEntity<Order> getOrderById(int id) {
         Optional<Order> orderOptional = orderRepository.findById(id);
-        if (orderOptional.isPresent()) {
-            Order order = orderOptional.get();
-            return new ResponseEntity<>(order, HttpStatus.OK);
-        } else {
-            return new ResponseEntity<>("Order not found", HttpStatus.NOT_FOUND);
-        }
+        return orderOptional.map(ResponseEntity::ok)
+                .orElse(ResponseEntity.notFound().build());
     }
 
-    public ResponseEntity<Object> getAllOrders() {
-        List<Order> dbOrders = orderRepository.findAll();
-        if (dbOrders.isEmpty()) {
-            return new ResponseEntity<>(HttpStatus.NOT_FOUND);
-        }
-        return new ResponseEntity<>(dbOrders, HttpStatus.OK);
+    public ResponseEntity<List<Order>> getAllOrders() {
+        List<Order> orders = orderRepository.findAll();
+        return orders.isEmpty() ?
+                ResponseEntity.noContent().build() :
+                ResponseEntity.ok(orders);
     }
 
-    public ResponseEntity<Object> createOrder(Order newOrder) {
-        Optional<Order> savedOrder = Optional.of(orderRepository.save(newOrder));
-
-        return savedOrder.<ResponseEntity<Object>>map(order -> ResponseEntity.status(HttpStatus.CREATED).body(order))
-                .orElseGet(() -> ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body("Failed to create order"));
+    public ResponseEntity<Order> createOrder(Order newOrder) {
+        Order savedOrder = orderRepository.save(newOrder);
+        savedOrder.setTotalPrice(updateTotalSum(newOrder));
+        return ResponseEntity.status(HttpStatus.CREATED).body(savedOrder);
     }
 
-    public ResponseEntity<Object> updateOrder(int orderId, Order updatedOrder) {
+    public ResponseEntity<Order> updateOrder(int orderId, Order updatedOrder) {
         Optional<Order> orderOptional = orderRepository.findById(orderId);
         if (orderOptional.isPresent()) {
             Order existingOrder = orderOptional.get();
             existingOrder.setName(updatedOrder.getName());
             existingOrder.setCustomerPhoneNumber(updatedOrder.getCustomerPhoneNumber());
             existingOrder.setAddress(updatedOrder.getAddress());
-            existingOrder.setTotalPrice(updatedOrder.getTotalPrice());
             existingOrder.setProducts(updatedOrder.getProducts());
-            updateTotalSum(existingOrder);
+            existingOrder.setTotalPrice(updateTotalSum(updatedOrder));
             orderRepository.save(existingOrder);
-            return new ResponseEntity<>("Order updated successfully", HttpStatus.OK);
+            return ResponseEntity.ok(existingOrder);
         } else {
-            return new ResponseEntity<>("Order not found", HttpStatus.NOT_FOUND);
+            return ResponseEntity.notFound().build();
         }
     }
 
-    public ResponseEntity<Object> addProductToOrder(int orderId, Product newProduct) {
+    public ResponseEntity<Order> addProductToOrder(int orderId, Product newProduct) {
         Optional<Order> orderOptional = orderRepository.findById(orderId);
         if (orderOptional.isPresent()) {
             Order order = orderOptional.get();
             order.getProducts().add(newProduct);
-            updateTotalSum(order);
+            order.setTotalPrice(updateTotalSum(order));
             orderRepository.save(order);
-            return new ResponseEntity<>("Product added to order successfully", HttpStatus.OK);
+            return ResponseEntity.ok(order);
         } else {
-            return new ResponseEntity<>("Order not found", HttpStatus.NOT_FOUND);
+            return ResponseEntity.notFound().build();
         }
     }
 
-    public ResponseEntity<Object> deleteProductFromOrder(int orderId, int productId) {
+    public ResponseEntity<Order> deleteProductFromOrder(int orderId, int productId) {
         Optional<Order> orderOptional = orderRepository.findById(orderId);
         if (orderOptional.isPresent()) {
             Order order = orderOptional.get();
-            Collection<Product> products = order.getProducts();
-            Optional<Product> productOptional = products.stream().filter(p -> p.getId() == productId).findFirst();
-            if (productOptional.isPresent()) {
-                products.remove(productOptional.get());
-                updateTotalSum(order);
+            boolean productRemoved = order.getProducts().removeIf(product -> product.getId() == productId);
+            if (productRemoved) {
+                order.setTotalPrice(updateTotalSum(order));
                 orderRepository.save(order);
-                return new ResponseEntity<>("Product deleted from order successfully", HttpStatus.OK);
-            } else {
-                return new ResponseEntity<>("Product not found in order", HttpStatus.NOT_FOUND);
+                return ResponseEntity.ok(order);
             }
-        } else {
-            return new ResponseEntity<>("Order not found", HttpStatus.NOT_FOUND);
         }
+        return ResponseEntity.notFound().build();
     }
 
-    public ResponseEntity<Object> deleteOrderById(int id) {
+    public ResponseEntity<Order> deleteOrderById(int id) {
         Optional<Order> orderOptional = orderRepository.findById(id);
         if (orderOptional.isPresent()) {
             orderRepository.deleteById(id);
-            return new ResponseEntity<>("Order deleted successfully", HttpStatus.OK);
+            return ResponseEntity.ok(orderOptional.get());
         } else {
-            return new ResponseEntity<>("Order not found", HttpStatus.NOT_FOUND);
+            return ResponseEntity.notFound().build();
         }
     }
 
-    private void updateTotalSum(Order order) {
-        double totalSum = order.getProducts().stream().mapToDouble(Product::getPrice).sum();
-        order.setTotalPrice(totalSum);
+    private double updateTotalSum(Order order) {
+        return order.getProducts().stream().mapToDouble(Product::getPrice).sum();
     }
 }
